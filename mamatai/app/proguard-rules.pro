@@ -1,0 +1,4 @@
+-keep class com.mamatai.model.** { *; }
+-keep class com.mamatai.util.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
