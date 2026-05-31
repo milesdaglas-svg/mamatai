@@ -21,8 +21,11 @@ jobs:
         with:
           gradle-version: '8.4'
 
+      - name: Show project structure
+        run: ls -la && ls -la app/
+
       - name: Build APK
-        run: gradle assembleDebug
+        run: gradle :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
