@@ -144,7 +144,7 @@ class AdminActivity : AppCompatActivity() {
         scope.launch {
             while (true) {
                 refreshDashboard()
-                delay(5000)
+                delay(10000)
             }
         }
     }
