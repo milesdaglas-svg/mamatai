@@ -6,6 +6,7 @@ import android.net.VpnService
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.mamatai.R
@@ -19,9 +20,9 @@ import kotlinx.coroutines.*
 
 class AdminActivity : AppCompatActivity() {
 
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private lateinit var userAdapter: UserAdapter
     private val VPN_REQUEST = 100
+    private var refreshJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +33,16 @@ class AdminActivity : AppCompatActivity() {
         setupVoucherForm()
         setupUserList()
         startServices()
+    }
+
+    override fun onResume() {
+        super.onResume()
         startRefreshLoop()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        refreshJob?.cancel()
     }
 
     private fun setupTabs() {
@@ -44,9 +54,10 @@ class AdminActivity : AppCompatActivity() {
         )
         tabs.forEach { (tabId, pageId) ->
             findViewById<Button>(tabId).setOnClickListener {
-                tabs.forEach { (_, pid) -> findViewById<LinearLayout>(pid).visibility = android.view.View.GONE }
+                tabs.forEach { (_, pid) ->
+                    findViewById<LinearLayout>(pid).visibility = android.view.View.GONE
+                }
                 findViewById<LinearLayout>(pageId).visibility = android.view.View.VISIBLE
-                tabs.forEach { (tid, _) -> findViewById<Button>(tid).isSelected = tid == tabId }
                 refreshDashboard()
             }
         }
@@ -55,14 +66,14 @@ class AdminActivity : AppCompatActivity() {
     private fun setupVoucherForm() {
         findViewById<Button>(R.id.btn_generate).setOnClickListener {
             val name     = findViewById<EditText>(R.id.et_name).text.toString().trim()
-            val dataSpinner = findViewById<Spinner>(R.id.sp_data)
-            val timeSpinner = findViewById<Spinner>(R.id.sp_time)
+            val dataSp   = findViewById<Spinner>(R.id.sp_data)
+            val timeSp   = findViewById<Spinner>(R.id.sp_time)
             val priceStr = findViewById<EditText>(R.id.et_price).text.toString()
 
-            val dataMb = when (dataSpinner.selectedItemPosition) {
+            val dataMb = when (dataSp.selectedItemPosition) {
                 0 -> 500; 1 -> 1024; 2 -> 2048; 3 -> 5120; 4 -> 10240; else -> 0
             }
-            val durationMin = when (timeSpinner.selectedItemPosition) {
+            val durationMin = when (timeSp.selectedItemPosition) {
                 0 -> 60; 1 -> 180; 2 -> 720; 3 -> 1440; 4 -> 4320; 5 -> 10080; else -> 43200
             }
             val price = priceStr.toIntOrNull() ?: 0
@@ -77,7 +88,6 @@ class AdminActivity : AppCompatActivity() {
             )
             DataStore.addVoucher(voucher)
 
-            // Show the generated code
             val codeView = findViewById<TextView>(R.id.tv_new_code)
             val codeCard = findViewById<LinearLayout>(R.id.card_new_code)
             codeView.text = code
@@ -92,6 +102,7 @@ class AdminActivity : AppCompatActivity() {
             Toast.makeText(this, "Voucher created: $code", Toast.LENGTH_SHORT).show()
             findViewById<EditText>(R.id.et_name).text.clear()
             findViewById<EditText>(R.id.et_price).text.clear()
+            refreshDashboard()
         }
     }
 
@@ -112,11 +123,9 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun startServices() {
-        // Start portal server
         startForegroundService(Intent(this, PortalServerService::class.java))
         startForegroundService(Intent(this, HotspotService::class.java))
 
-        // Request VPN permission then start VPN
         val vpnIntent = VpnService.prepare(this)
         if (vpnIntent != null) {
             startActivityForResult(vpnIntent, VPN_REQUEST)
@@ -137,14 +146,13 @@ class AdminActivity : AppCompatActivity() {
             action = MamaTaiVpnService.ACTION_START
         }
         startForegroundService(intent)
-        Toast.makeText(this, "MAMA.TAI engine started!", Toast.LENGTH_SHORT).show()
     }
 
     private fun startRefreshLoop() {
-        scope.launch {
+        refreshJob = lifecycleScope.launch {
             while (true) {
                 refreshDashboard()
-                delay(5000)
+                delay(15_000) // refresh every 15 seconds — not too aggressive
             }
         }
     }
@@ -155,16 +163,14 @@ class AdminActivity : AppCompatActivity() {
         val active   = users.count { it.isForwarding && !it.isExpired }
         val revenue  = DataStore.getTotalRevenue()
 
-        findViewById<TextView>(R.id.tv_active_count).text  = "$active"
-        findViewById<TextView>(R.id.tv_total_users).text   = "${users.size}"
-        findViewById<TextView>(R.id.tv_revenue).text       = "UGX ${String.format("%,d", revenue)}"
-        findViewById<TextView>(R.id.tv_voucher_count).text = "${vouchers.size}"
-
-        userAdapter.submitList(users.toMutableList())
-    }
-
-    override fun onDestroy() {
-        scope.cancel()
-        super.onDestroy()
+        runOnUiThread {
+            try {
+                findViewById<TextView>(R.id.tv_active_count).text  = "$active"
+                findViewById<TextView>(R.id.tv_total_users).text   = "${users.size}"
+                findViewById<TextView>(R.id.tv_revenue).text       = "UGX ${String.format("%,d", revenue)}"
+                findViewById<TextView>(R.id.tv_voucher_count).text = "${vouchers.size}"
+                userAdapter.submitList(users.toMutableList())
+            } catch (e: Exception) {}
+        }
     }
 }

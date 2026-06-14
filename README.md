@@ -1,4 +1,4 @@
-# MAMA.TAI 📶
+# MAMA.TAI 📡
 ### WiFi Hotspot Voucher Manager for Android
 
 ---
