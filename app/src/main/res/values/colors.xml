@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="green_primary">#00c853</color>
-    <color name="bg_dark">#0a0a0a</color>
-    <color name="surface_dark">#1a1a1a</color>
-    <color name="text_muted">#666666</color>
+    <color name="primary">#0288D1</color>
+    <color name="primary_dark">#01579B</color>
+    <color name="primary_light">#B3E5FC</color>
+    <color name="accent">#00BCD4</color>
+    <color name="accent_light">#E0F7FA</color>
+    <color name="bg_dark">#0A1929</color>
+    <color name="bg_card">#0D2137</color>
+    <color name="bg_surface">#112240</color>
+    <color name="text_primary">#E8F4FD</color>
+    <color name="text_secondary">#90CAF9</color>
+    <color name="text_muted">#546E7A</color>
+    <color name="green">#00E676</color>
+    <color name="orange">#FF9800</color>
+    <color name="red">#FF5252</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="gradient_start">#0288D1</color>
+    <color name="gradient_end">#00BCD4</color>
 </resources>
